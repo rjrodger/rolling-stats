@@ -1,0 +1,4 @@
+rolling-stats
+=============
+
+Rolling statistics
