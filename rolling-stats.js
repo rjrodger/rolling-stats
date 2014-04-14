@@ -146,6 +146,15 @@ function NamedStats( size, duration, clock ) {
 
     return stats.calculate()
   }
+
+
+  self.names = function() {
+    var names = []
+    for( var name in map ) {
+      names.push(name)
+    }
+    return names;
+  }
   
   return self
 }
