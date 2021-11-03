@@ -1,169 +1,137 @@
-/* Copyright (c) 2013-2014 Richard Rodger, MIT License */
-/* jshint node:true, asi:true, eqnull:true */
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 "use strict";
-
-
-function Stats( size, duration, clock ) {
-  var self = this
-
-  size = size || 1111
-  duration = duration || 60000
-  clock = clock || Date.now
-
-  var start = clock()
-
-  var vals  = new Array(size)
-  var times = new Array(size)
-
-  var head = -1
-  
-  var count = 0
-  var sum   = 0
-
-  var allmin   = void 0
-  var allmax   = void 0
-  var allcount = 0
-  var allsum   = 0
-
-  var minrate   = void 0
-  var maxrate   = void 0
-
-
-  self.point = function( v ) {
-    if( null == v ) return;
-
-    var now = clock()
-    var cutoff = now - duration
-
-    head = (head+1) % size
-
-    if( count === size ) {
-      sum -= vals[head]
-      count--
+Object.defineProperty(exports, "__esModule", { value: true });
+class Stats {
+    constructor(size, duration, clock) {
+        this.head = -1;
+        this.count = 0;
+        this.sum = 0;
+        this.allcount = 0;
+        this.allsum = 0;
+        this.size = size || 1111;
+        this.duration = duration || 60000;
+        this.clock = (null == clock ? Date.now : clock);
+        this.start = this.clock();
+        this.vals = new Array(size);
+        this.times = new Array(size);
+        this.head = -1;
+        this.count = 0;
+        this.sum = 0;
+        this.allmin = 0;
+        this.allmax = 0;
+        this.allcount = 0;
+        this.allsum = 0;
+        this.minrate = 0;
+        this.maxrate = 0;
     }
-
-    vals[head]  = v
-    times[head] = now
-
-    count++
-    sum += v
-
-    allcount++
-    allsum += v
-    allmin = void 0===allmin ? v : v < allmin ? v : allmin
-    allmax = void 0===allmax ? v : allmax < v ? v : allmax
-
-    //console.log('point k:'+times[head]+',n:'+count+',h:'+head+', v='+vals+' t='+times)
-  }
-
-  
-  self.calculate = function() {
-    var now = clock()
-    var cutoff = now - duration
-    var i
-
-    if( 0 < count ) {
-      var tail = (size + head - count + 1) % size
-      i = 0
-      while( i++ < count && times[tail] <= cutoff ) {
-        sum -= vals[tail]
-        count--
-        tail = (tail+1) % size
-      }
+    point(v) {
+        if (null == v)
+            return;
+        let now = this.clock();
+        // let cutoff = now - duration
+        this.head = (this.head + 1) % this.size;
+        if (this.count === this.size) {
+            this.sum -= this.vals[this.head];
+            this.count--;
+        }
+        this.vals[this.head] = v;
+        this.times[this.head] = now;
+        this.count++;
+        this.sum += v;
+        this.allcount++;
+        this.allsum += v;
+        this.allmin = null == this.allmin ? v : v < this.allmin ? v : this.allmin;
+        this.allmax = null == this.allmax ? v : this.allmax < v ? v : this.allmax;
     }
-
-    var mean = 0 < count ? sum / count : 0
-    var vr = 0, v, min, max
-    for( i = 0; i < count; i++ ) {
-      v = vals[(size+head-i)%size]
-      vr += Math.pow( v - mean, 2 )
-      min = void 0===min ? v : v < min ? v : min
-      max = void 0===max ? v : max < v ? v : max
+    calculate() {
+        let now = this.clock();
+        let cutoff = now - this.duration;
+        let i;
+        if (0 < this.count) {
+            let tail = (this.size + this.head - this.count + 1) % this.size;
+            i = 0;
+            while (i++ < this.count && this.times[tail] <= cutoff) {
+                this.sum -= this.vals[tail];
+                this.count--;
+                tail = (tail + 1) % this.size;
+            }
+        }
+        let mean = 0 < this.count ? this.sum / this.count : 0;
+        let vr = 0, v, min, max;
+        for (i = 0; i < this.count; i++) {
+            v = this.vals[(this.size + this.head - i) % this.size];
+            vr += Math.pow(v - mean, 2);
+            min = void 0 === min ? v : v < min ? v : min;
+            max = void 0 === max ? v : max < v ? v : max;
+        }
+        let rate = 1000 * this.count / this.duration;
+        this.minrate =
+            null == this.minrate ? rate : rate < this.minrate ? rate : this.minrate;
+        this.maxrate =
+            null == this.maxrate ? rate : this.maxrate < rate ? rate : this.maxrate;
+        let out = {
+            now: now,
+            from: cutoff,
+            start: this.start,
+            count: this.count,
+            sum: this.sum,
+            mean: mean,
+            min: min,
+            max: max,
+            stddev: 1 < this.count ? Math.sqrt(vr / (this.count - 1)) : 0,
+            rate: rate,
+            minrate: this.minrate,
+            maxrate: this.maxrate,
+            allmin: this.allmin,
+            allmax: this.allmax,
+            allcount: this.allcount,
+            allsum: this.allsum,
+            allmean: 0 < this.allcount ? this.allsum / this.allcount : 0,
+            allrate: 1000 * this.allcount / (now - this.start)
+        };
+        return out;
     }
-
-    var rate = 1000 * count / duration
-    minrate = void 0===minrate ? rate : rate < minrate ? rate : minrate
-    maxrate = void 0===maxrate ? rate : maxrate < rate ? rate : maxrate
-
-    var out = {
-      now: now,
-      from: cutoff,
-      start: start,
-
-      count: count, 
-      sum: sum,
-      mean: mean,
-      min : min,
-      max : max,
-      stddev: 1 < count ? Math.sqrt(vr/(count-1)) : 0,
-
-      rate:rate,
-      minrate:minrate,
-      maxrate:maxrate,
-
-      allmin : allmin,
-      allmax : allmax,
-      allcount : allcount,
-      allsum : allsum,
-      allmean : 0 < allcount ? allsum / allcount : 0,
-      allrate: 1000 * allcount / (now-start)
-    }
-    //console.log(require('util').inspect(out))
-
-    return out
-  }
-
-
-  return self
 }
-
-
-function NamedStats( size, duration, clock ) {
-  var self = this
-
-  var empty = new Stats( 1, 1 ).calculate()
-  var map = {}
-
-  self.point = function( v, name ) {
-    if( null == v || null == name ) return;
-
-    var stats = (map[name] = (map[name] || new Stats( size, duration, clock )))
-    stats.point( v )
-  }
-
-  
-  self.calculate = function( name ) {
-    if( null == name ) {
-      var out = {}
-      for( var n in map ) {
-        out[n] = map[n].calculate()
-      }
-      return out
-    }
-
-    var stats = (map[name] = (map[name] || new Stats( size, duration )))
-    if( null == stats ) return empty;
-
-    return stats.calculate()
-  }
-
-
-  self.names = function() {
-    var names = []
-    for( var name in map ) {
-      names.push(name)
-    }
-    return names;
-  }
-  
-  return self
+function NamedStats(size, duration, clock) {
+    let self = Object.create(null);
+    let empty = new Stats(1, 1).calculate();
+    let map = {};
+    self.point = function (v, name) {
+        if (null == v || null == name)
+            return;
+        let stats = (map[name] = (map[name] || new Stats(size, duration, clock)));
+        stats.point(v);
+    };
+    self.calculate = function (name) {
+        if (null == name) {
+            let out = {};
+            for (let n in map) {
+                out[n] = map[n].calculate();
+            }
+            return out;
+        }
+        let stats = (map[name] = (map[name] || new Stats(size, duration)));
+        if (null == stats)
+            return empty;
+        return stats.calculate();
+    };
+    self.names = function () {
+        let names = [];
+        for (let name in map) {
+            names.push(name);
+        }
+        return names;
+    };
+    return self;
 }
-
-
-module.exports = function( size, duration, clock ) {
-  var stats = new Stats( size, duration, clock );
-  return stats
+const RollingStats = function (size, duration, clock) {
+    let stats = new Stats(size, duration, clock);
+    return stats;
+};
+RollingStats.Stats = Stats;
+RollingStats.NamedStats = NamedStats;
+exports.default = RollingStats;
+if ('undefined' !== typeof (module)) {
+    module.exports = RollingStats;
 }
-
-module.exports.Stats      = Stats
-module.exports.NamedStats = NamedStats
+//# sourceMappingURL=rolling-stats.js.map

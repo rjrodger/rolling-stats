@@ -1,10 +1,17 @@
 {
   "name": "rolling-stats",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Rolling statistics",
   "main": "rolling-stats.js",
   "scripts": {
-    "test": "node test/rolling-stats.test.js"
+    "test": "node test/rolling-stats.test.js",
+    "watch": "tsc -w -d",
+    "build": "tsc -d",
+    "clean": "rm -rf node_modules yarn.lock package-lock.json",
+    "reset": "npm run clean && npm i && npm test",
+    "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
+    "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
+    "repo-publish-quick": "npm run prettier && npm run build && npm run test && npm run repo-tag && npm publish --access public --registry https://registry.npmjs.org "
   },
   "repository": {
     "type": "git",
@@ -17,15 +24,13 @@
   ],
   "author": "Richard Rodger (http://richardrodger.com)",
   "license": "MIT",
-  "dependencies": {
-  },
-  "peerDependencies": {
-  },
   "devDependencies": {
+    "@types/node": "^16.11.6",
+    "typescript": "^4.4.4"
   },
   "files": [
     "README.md",
     "LICENSE.txt",
-    "rolling-stats.js"
+    "rolling-stats.*"
   ]
 }
